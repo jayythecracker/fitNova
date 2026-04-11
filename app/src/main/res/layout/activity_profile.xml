@@ -102,7 +102,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:text="@string/profile_account_body"
-                    android:textColor="@color/auth_hint"
+                    android:textColor="@color/green_blue"
                     android:textSize="14sp" />
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -115,9 +115,11 @@
                         android:id="@+id/tieProfileFullName"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:background="@color/green_blue"
                         android:inputType="textPersonName"
                         android:maxLines="1"
-                        tools:text="Ruki Aung" />
+                        android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+                        tools:text="Linn Thit Oo" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout
@@ -130,9 +132,10 @@
                         android:id="@+id/tieProfileEmail"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:background="@color/green_blue"
                         android:inputType="textEmailAddress"
                         android:maxLines="1"
-                        tools:text="ruki@email.com" />
+                        tools:text="linnthit@gmail.com" />
                 </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -157,7 +160,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/profile_body_section"
-                    android:textColor="@color/fitness_text_primary"
+                    android:textColor="@color/white"
                     android:textSize="20sp"
                     android:textStyle="bold" />
 
@@ -190,14 +193,16 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/auth_gender_male" />
+                        android:text="@string/auth_gender_male"
+                        android:textColor="@color/green_blue" />
 
                     <RadioButton
                         android:id="@+id/rbProfileFemale"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/auth_gender_female" />
+                        android:text="@string/auth_gender_female"
+                        android:textColor="@color/green_blue" />
                 </RadioGroup>
 
                 <TextView

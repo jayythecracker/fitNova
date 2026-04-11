@@ -8,7 +8,7 @@
         <item name="android:windowLightNavigationBar">false</item>
         <item name="colorPrimary">@color/auth_button_blue</item>
         <item name="colorOnPrimary">@color/auth_gold_button_text</item>
-        <item name="colorSurface">@color/auth_logo_chip</item>
+        <item name="colorSurface">@color/auth_dark_background</item>
         <item name="android:colorBackground">@color/auth_dark_background</item>
     </style>
 

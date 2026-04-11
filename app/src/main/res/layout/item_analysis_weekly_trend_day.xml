@@ -37,7 +37,7 @@
             android:id="@+id/viewTrendWalkingBar"
             android:layout_width="8dp"
             android:layout_height="48dp"
-            android:background="@color/fitness_accent"
+            android:background="@color/white"
             tools:ignore="ContentDescription" />
 
         <Space
