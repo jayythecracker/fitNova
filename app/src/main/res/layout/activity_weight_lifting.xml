@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     android:background="@color/auth_dark_background"
     android:fillViewport="true"
-    tools:context=".workout.strength.WeightLiftingActivity">
+    tools:context=".workout.strength.StrengthWorkoutActivity">
 
     <LinearLayout
         android:layout_width="match_parent"

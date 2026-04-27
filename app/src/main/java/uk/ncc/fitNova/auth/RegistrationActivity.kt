@@ -1,30 +1,17 @@
 package uk.ncc.fitNova.auth
 
 import android.os.Bundle
-import android.view.View
 import android.widget.Button
 import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import com.android.volley.AuthFailureError
-import com.android.volley.Request
-import com.android.volley.Response
-import com.android.volley.VolleyError
-import com.android.volley.toolbox.StringRequest
-import com.android.volley.toolbox.Volley
 import com.google.android.material.slider.Slider
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import uk.ncc.fitNova.R
 import uk.ncc.fitNova.data.remote.BackendConfig
-import uk.ncc.fitNova.ui.applyBlackSystemBars
 
-
-class RegistrationActivity : AppCompatActivity() {
+class RegistrationActivity : BaseAuthActivity() {
     private lateinit var fnameTet: TextInputEditText
     private lateinit var emailTet: TextInputEditText
     private lateinit var passwordTet: TextInputEditText
@@ -43,11 +30,7 @@ class RegistrationActivity : AppCompatActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContentView(R.layout.activity_registration)
-        applyBlackSystemBars(this)
-        applySystemBarInsets(findViewById(R.id.svRegister))
+        configureAuthScreen(savedInstanceState, R.layout.activity_registration, R.id.svRegister)
 
         //UI Initialization
         fnameTet = findViewById<TextInputEditText>(R.id.tieFullName)
@@ -102,26 +85,6 @@ class RegistrationActivity : AppCompatActivity() {
             }
         }
     }//end of onCreate()
-
-    private fun applySystemBarInsets(view: View) {
-        val initialLeft = view.paddingLeft
-        val initialTop = view.paddingTop
-        val initialRight = view.paddingRight
-        val initialBottom = view.paddingBottom
-
-        ViewCompat.setOnApplyWindowInsetsListener(view) { target, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            target.setPadding(
-                initialLeft + systemBars.left,
-                initialTop + systemBars.top,
-                initialRight + systemBars.right,
-                initialBottom + systemBars.bottom
-            )
-            insets
-        }
-
-        ViewCompat.requestApplyInsets(view)
-    }
 
     private fun syncSliderValues() {
         age = ageSld.value.toInt().toString()
@@ -188,10 +151,21 @@ class RegistrationActivity : AppCompatActivity() {
     private fun register() {
         val userData = getUserData()
 
-        //Create volley string request
-        val stringRequest = object : StringRequest(
-            Request.Method.POST, BackendConfig.REGISTRATION_URL,
-            Response.Listener<String> { response ->
+        submitPostRequest(
+            url = BackendConfig.REGISTRATION_URL,
+            paramsProvider = {
+                hashMapOf(
+                    "phpFunction" to "createUser",
+                    "fullName" to userData.fullName,
+                    "email" to userData.email,
+                    "password" to userData.password,
+                    "gender" to userData.gender,
+                    "age" to userData.age,
+                    "weight" to userData.weight,
+                    "height" to userData.height
+                )
+            },
+            onResponse = { response ->
                 val trimmedResponse = response.trim()
                 if (trimmedResponse == "true") {
                     Toast.makeText(
@@ -204,32 +178,14 @@ class RegistrationActivity : AppCompatActivity() {
                     Toast.makeText(this, trimmedResponse, Toast.LENGTH_LONG).show()
                 }
             },
-            object : Response.ErrorListener {
-                override fun onErrorResponse(volleyError: VolleyError) {
-                    Toast.makeText(
-                        applicationContext,
-                        "Error: ${volleyError.message ?: "Unknown error"}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+            onError = { volleyError ->
+                Toast.makeText(
+                    applicationContext,
+                    "Error: ${volleyError.message ?: "Unknown error"}",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
-        ) {
-            @Throws(AuthFailureError::class)
-            override fun getParams(): Map<String, String> {
-                val params = HashMap<String, String>()
-                params.put("phpFunction", "createUser")
-                params.put("fullName", userData.fullName)
-                params.put("email", userData.email)
-                params.put("password",userData.password)
-                params.put("gender", userData.gender)
-                params.put("age", userData.age)
-                params.put("weight", userData.weight)
-                params.put("height", userData.height)
-                return params
-            }
-        }
-        Volley.newRequestQueue(this).add(stringRequest)
-
+        )
     }
 
 }//end of RegistrationActivity

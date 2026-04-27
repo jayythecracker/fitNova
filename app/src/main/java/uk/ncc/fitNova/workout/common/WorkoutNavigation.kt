@@ -3,7 +3,7 @@ package uk.ncc.fitNova.workout.common
 import android.content.Context
 import android.content.Intent
 import uk.ncc.fitNova.workout.outdoor.OutdoorWorkoutActivity
-import uk.ncc.fitNova.workout.strength.WeightLiftingActivity
+import uk.ncc.fitNova.workout.strength.StrengthWorkoutActivity
 
 object WorkoutNavigation {
     const val TYPE_RUNNING = "running"
@@ -15,7 +15,7 @@ object WorkoutNavigation {
 
     fun createIntent(context: Context, workoutType: String): Intent {
         return when (workoutType) {
-            TYPE_WEIGHT_LIFTING -> Intent(context, WeightLiftingActivity::class.java)
+            TYPE_WEIGHT_LIFTING -> Intent(context, StrengthWorkoutActivity::class.java)
             TYPE_RUNNING, TYPE_WALKING, TYPE_CYCLING -> {
                 Intent(context, OutdoorWorkoutActivity::class.java).apply {
                     putExtra(EXTRA_WORKOUT_TYPE, workoutType)

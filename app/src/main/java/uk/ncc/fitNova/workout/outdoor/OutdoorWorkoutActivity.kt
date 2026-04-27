@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.location.Location
 import android.os.Bundle
-import android.os.Handler
 import android.os.Looper
 import android.text.InputType
 import android.util.Log
@@ -19,7 +18,6 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -52,9 +50,10 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import uk.ncc.fitNova.R
-import uk.ncc.fitNova.data.prefs.SessionPrefs
 import uk.ncc.fitNova.data.remote.BackendConfig
 import uk.ncc.fitNova.ui.applyBlackSystemBars
+import uk.ncc.fitNova.workout.BaseWorkoutActivity
+import uk.ncc.fitNova.workout.OutdoorWorkoutSession
 import uk.ncc.fitNova.workout.WorkoutHistorySession
 import uk.ncc.fitNova.workout.WorkoutJsonParser
 import java.time.LocalDate
@@ -62,7 +61,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-class OutdoorWorkoutActivity : AppCompatActivity(), OnMapReadyCallback {
+class OutdoorWorkoutActivity : BaseWorkoutActivity(), OnMapReadyCallback {
     private lateinit var rootLayout: ConstraintLayout
     private lateinit var mapContainerView: View
     private lateinit var outdoorPanelCard: MaterialCardView
@@ -128,9 +127,6 @@ class OutdoorWorkoutActivity : AppCompatActivity(), OnMapReadyCallback {
     private var isMapReady = false
 
     private var workoutType = WORKOUT_TYPE_WALKING
-    private var isTracking = false
-    private var isSaving = false
-    private var secondsElapsed = 0
     private var totalDistanceMeters = 0.0
     private var currentSpeedMetersPerSecond = 0.0
     private var caloriesBurned = 0.0
@@ -150,21 +146,18 @@ class OutdoorWorkoutActivity : AppCompatActivity(), OnMapReadyCallback {
     private var isLogLoading = false
     private val routePoints = arrayListOf<LatLng>()
     private val outdoorLogSessions = mutableListOf<WorkoutHistorySession>()
-    private val sessionPrefs by lazy { SessionPrefs(this) }
 
-    private val timerHandler = Handler(Looper.getMainLooper())
-    private val timerRunnable = object : Runnable {
-        override fun run() {
-            if (!isTracking) {
-                return
-            }
-
-            secondsElapsed++
-            updateTargetDurationState(showToast = true)
-            renderMetrics()
-            timerHandler.postDelayed(this, 1000)
+    private var isTracking: Boolean
+        get() = isWorkoutRunning
+        set(value) {
+            isWorkoutRunning = value
         }
-    }
+
+    private var secondsElapsed: Int
+        get() = elapsedSeconds
+        set(value) {
+            elapsedSeconds = value
+        }
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -182,11 +175,7 @@ class OutdoorWorkoutActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContentView(R.layout.activity_outdoor_workout)
-        applyBlackSystemBars(this)
-        applySystemBarInsets(findViewById(R.id.main))
+        configureWorkoutScreen(savedInstanceState, R.layout.activity_outdoor_workout, R.id.main)
 
         workoutType = savedInstanceState?.getString(KEY_WORKOUT_TYPE)
             ?: intent.getStringExtra(EXTRA_WORKOUT_TYPE)?.lowercase(Locale.US)
@@ -316,6 +305,11 @@ class OutdoorWorkoutActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
+    override fun onTimerTick(totalSeconds: Int) {
+        updateTargetDurationState(showToast = true)
+        renderMetrics()
+    }
+
     private fun bindActions() {
         toggleButton.setOnClickListener {
             if (isTracking) {
@@ -343,26 +337,6 @@ class OutdoorWorkoutActivity : AppCompatActivity(), OnMapReadyCallback {
             selectedPanel = PANEL_DATA
             showSelectedPanel()
         }
-    }
-
-    private fun applySystemBarInsets(view: View) {
-        val initialLeft = view.paddingLeft
-        val initialTop = view.paddingTop
-        val initialRight = view.paddingRight
-        val initialBottom = view.paddingBottom
-
-        ViewCompat.setOnApplyWindowInsetsListener(view) { target, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            target.setPadding(
-                initialLeft + systemBars.left,
-                initialTop + systemBars.top,
-                initialRight + systemBars.right,
-                initialBottom + systemBars.bottom
-            )
-            insets
-        }
-
-        ViewCompat.requestApplyInsets(view)
     }
 
     override fun onMapReady(map: GoogleMap) {
@@ -403,8 +377,7 @@ class OutdoorWorkoutActivity : AppCompatActivity(), OnMapReadyCallback {
         lastLocation = null
         currentSpeedMetersPerSecond = 0.0
         isTracking = true
-        timerHandler.removeCallbacks(timerRunnable)
-        timerHandler.postDelayed(timerRunnable, 1000)
+        startTimer()
         startLocationUpdates()
         renderMetrics()
         updateToggleButton()
@@ -413,7 +386,7 @@ class OutdoorWorkoutActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun pauseTracking() {
         isTracking = false
         currentSpeedMetersPerSecond = 0.0
-        timerHandler.removeCallbacks(timerRunnable)
+        stopTimer()
         stopLocationUpdates()
         renderMetrics()
         updateToggleButton()
@@ -601,17 +574,11 @@ class OutdoorWorkoutActivity : AppCompatActivity(), OnMapReadyCallback {
             return
         }
 
-        val userId = sessionPrefs.getUserId()
-        if (userId <= 0) {
-            Toast.makeText(this, R.string.outdoor_workout_save_user_missing, Toast.LENGTH_SHORT)
-                .show()
-            return
-        }
+        val userId = requireUserId(R.string.outdoor_workout_save_user_missing) ?: return
 
         val destinationLat = destinationPoint?.latitude
         val destinationLng = destinationPoint?.longitude
         val remainingDistanceMeters = getCurrentRemainingDistance()
-        val routeJson = buildRouteJson()
 
         pauseTracking()
 
@@ -625,83 +592,32 @@ class OutdoorWorkoutActivity : AppCompatActivity(), OnMapReadyCallback {
         clearCaloriesGoalButton.isEnabled = false
         finishButton.text = getString(R.string.weight_lifting_saving)
 
-        val request = object : StringRequest(
-            Request.Method.POST,
-            BackendConfig.WORKOUT_URL,
-            Response.Listener<String> { response ->
-                try {
-                    val payload = JSONObject(response.trim())
-                    if (payload.optString("response") == "true") {
-                        Toast.makeText(
-                            this,
-                            R.string.outdoor_workout_save_success,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        finish()
-                    } else {
-                        resetSaveState()
-                        val message = payload.optString(
-                            "message",
-                            getString(R.string.outdoor_workout_save_failed)
-                        )
-                        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-                    }
-                } catch (exception: JSONException) {
-                    Log.e("OutdoorWorkout", "Invalid save response: ${exception.message}")
-                    resetSaveState()
-                    Toast.makeText(
-                        this,
-                        R.string.outdoor_workout_save_failed,
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            },
-            Response.ErrorListener { error ->
-                Log.e("OutdoorWorkout", "Failed to save outdoor workout: $error")
-                resetSaveState()
-                Toast.makeText(
-                    this,
-                    R.string.outdoor_workout_save_network_error,
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        ) {
-            @Throws(AuthFailureError::class)
-            override fun getParams(): Map<String, String> {
-                return hashMapOf(
-                    "phpFunction" to "saveWorkoutSession",
-                    "userId" to userId.toString(),
-                    "workoutType" to workoutType,
-                    "durationSeconds" to secondsElapsed.toString(),
-                    "totalSets" to "0",
-                    "totalReps" to "0",
-                    "totalVolume" to "0.00",
-                    "distanceMeters" to String.format(Locale.US, "%.2f", totalDistanceMeters),
-                    "caloriesBurned" to String.format(Locale.US, "%.2f", caloriesBurned),
-                    "routeName" to routeName,
-                    "destinationLat" to destinationLat?.let {
-                        String.format(Locale.US, "%.8f", it)
-                    }.orEmpty(),
-                    "destinationLng" to destinationLng?.let {
-                        String.format(Locale.US, "%.8f", it)
-                    }.orEmpty(),
-                    "remainingDistanceMeters" to String.format(
-                        Locale.US,
-                        "%.2f",
-                        remainingDistanceMeters
-                    ),
-                    "destinationReached" to if (hasArrivedAtDestination) "1" else "0",
-                    "targetDurationSeconds" to targetDurationSeconds.toString(),
-                    "targetDurationReached" to if (hasReachedTargetDuration) "1" else "0",
-                    "distanceGoalMeters" to String.format(Locale.US, "%.2f", distanceGoalMeters),
-                    "caloriesGoal" to String.format(Locale.US, "%.2f", caloriesGoal),
-                    "routeJson" to routeJson,
-                    "setLogJson" to "[]"
-                )
-            }
-        }
+        val session = OutdoorWorkoutSession(
+            userId = userId,
+            workoutType = workoutType,
+            durationSeconds = secondsElapsed,
+            userWeightKg = sessionPrefs.getWeight(),
+            distanceMeters = totalDistanceMeters,
+            routeName = routeName,
+            destinationPoint = destinationPoint,
+            remainingDistanceMeters = remainingDistanceMeters,
+            destinationReached = hasArrivedAtDestination,
+            targetDurationSeconds = targetDurationSeconds,
+            targetDurationReached = hasReachedTargetDuration,
+            distanceGoalMeters = distanceGoalMeters,
+            caloriesGoal = caloriesGoal,
+            routePoints = routePoints.toList()
+        )
 
-        Volley.newRequestQueue(this).add(request)
+        saveWorkout(
+            session = session,
+            logTag = "OutdoorWorkout",
+            successMessageRes = R.string.outdoor_workout_save_success,
+            failureMessageRes = R.string.outdoor_workout_save_failed,
+            networkErrorMessageRes = R.string.outdoor_workout_save_network_error,
+            onSuccess = { finish() },
+            onFailure = { resetSaveState() }
+        )
     }
 
     private fun resetSaveState() {
@@ -766,15 +682,14 @@ class OutdoorWorkoutActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onResume()
 
         if (isTracking) {
-            timerHandler.removeCallbacks(timerRunnable)
-            timerHandler.postDelayed(timerRunnable, 1000)
+            startTimer()
             startLocationUpdates()
         }
     }
 
     override fun onPause() {
         super.onPause()
-        timerHandler.removeCallbacks(timerRunnable)
+        stopTimer()
         stopLocationUpdates()
     }
 
@@ -801,21 +716,8 @@ class OutdoorWorkoutActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
-        timerHandler.removeCallbacks(timerRunnable)
         stopLocationUpdates()
-    }
-
-    private fun formatDuration(totalSeconds: Int): String {
-        val hours = totalSeconds / 3600
-        val minutes = (totalSeconds % 3600) / 60
-        val seconds = totalSeconds % 60
-
-        return if (hours > 0) {
-            String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
-        } else {
-            String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
-        }
+        super.onDestroy()
     }
 
     private fun formatDistance(distanceMeters: Double): String {

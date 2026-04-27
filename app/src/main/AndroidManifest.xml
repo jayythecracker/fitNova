@@ -34,7 +34,7 @@
             android:name=".analysis.AnalysisReportActivity"
             android:exported="false" />
         <activity
-            android:name=".workout.strength.WeightLiftingActivity"
+            android:name=".workout.strength.StrengthWorkoutActivity"
             android:exported="false" />
         <activity
             android:name=".workout.outdoor.OutdoorWorkoutActivity"
