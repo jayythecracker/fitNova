@@ -14,6 +14,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@color/dashboard_activity_walking"
         android:orientation="vertical"
         android:padding="20dp">
 
@@ -21,7 +22,7 @@
             android:id="@+id/tvWorkoutHistoryType"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/fitness_text_primary"
+            android:textColor="@color/white"
             android:textSize="20sp"
             android:textStyle="bold"
             tools:text="Weight Lifting" />
@@ -31,7 +32,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
-            android:textColor="@color/auth_hint"
+            android:textColor="@color/white"
             android:textSize="13sp"
             tools:text="2026-03-31 21:40:00" />
 
