@@ -24,6 +24,7 @@ import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import org.json.JSONArray
@@ -55,6 +56,10 @@ class FitnessActivity : AppCompatActivity() {
     private lateinit var weightRangeText: TextView
     private lateinit var waterGoalText: TextView
     private lateinit var tipText: TextView
+    private lateinit var homeMoveRingProgress: CircularProgressIndicator
+    private lateinit var homeMoveProgressText: TextView
+    private lateinit var homeCaloriesValueText: TextView
+    private lateinit var homeDistanceValueText: TextView
     private lateinit var profileButton: View
     private lateinit var scrollFitnessContent: ScrollView
     private lateinit var homeSection: View
@@ -141,10 +146,9 @@ class FitnessActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         renderDashboardFromSession()
+        renderHomeActivitySummary(emptyList())
         hasLoadedWorkoutData = false
-        if (selectedTab == TAB_HISTORY || selectedTab == TAB_REPORT) {
-            ensureWorkoutDataLoaded(force = true)
-        }
+        ensureWorkoutDataLoaded(force = true)
         syncBottomNavSelection()
     }
 
@@ -158,6 +162,10 @@ class FitnessActivity : AppCompatActivity() {
         weightRangeText = findViewById(R.id.tvWeightRangeValue)
         waterGoalText = findViewById(R.id.tvWaterGoalValue)
         tipText = findViewById(R.id.tvCoachingTip)
+        homeMoveRingProgress = findViewById(R.id.progressHomeMoveRing)
+        homeMoveProgressText = findViewById(R.id.tvHomeMoveProgress)
+        homeCaloriesValueText = findViewById(R.id.tvHomeCaloriesValue)
+        homeDistanceValueText = findViewById(R.id.tvHomeDistanceValue)
         profileButton = findViewById(R.id.btnProfile)
         scrollFitnessContent = findViewById(R.id.scrollFitnessContent)
         homeSection = findViewById(R.id.layoutHomeSection)
@@ -544,6 +552,7 @@ class FitnessActivity : AppCompatActivity() {
             return
         }
         if (hasLoadedWorkoutData && !force) {
+            renderHomeActivitySummary(workoutSessions)
             renderHistorySection(workoutSessions)
             renderReportSection(workoutSessions)
             return
@@ -573,6 +582,7 @@ class FitnessActivity : AppCompatActivity() {
 
                     workoutSessions = decodeSessions(payload.optJSONArray("sessions") ?: JSONArray())
                     hasLoadedWorkoutData = true
+                    renderHomeActivitySummary(workoutSessions)
                     renderHistorySection(workoutSessions)
                     renderReportSection(workoutSessions)
                 } catch (_: JSONException) {
@@ -635,6 +645,23 @@ class FitnessActivity : AppCompatActivity() {
 
     private fun decodeSessions(array: JSONArray): List<WorkoutHistorySession> {
         return WorkoutJsonParser.decodeSessions(array)
+    }
+
+    private fun renderHomeActivitySummary(sessions: List<WorkoutHistorySession>) {
+        val today = LocalDate.now()
+        val todaySessions = sessions.filter { parseSessionDate(it.createdAt) == today }
+        val caloriesBurned = todaySessions.sumOf { it.caloriesBurned }.coerceAtLeast(0.0)
+        val distanceMeters = todaySessions.sumOf { it.distanceMeters }.coerceAtLeast(0.0)
+        val progress = ((caloriesBurned / HOME_MOVE_GOAL_KCAL) * 100).toInt().coerceIn(0, 100)
+
+        homeMoveRingProgress.progress = progress
+        homeMoveProgressText.text = getString(
+            R.string.fitness_home_move_progress,
+            formatCaloriesValue(caloriesBurned),
+            HOME_MOVE_GOAL_KCAL.toInt()
+        )
+        homeCaloriesValueText.text = formatCaloriesValue(caloriesBurned)
+        homeDistanceValueText.text = formatHomeDistance(distanceMeters)
     }
 
     private fun renderHistorySection(sessions: List<WorkoutHistorySession>) {
@@ -1156,7 +1183,7 @@ class FitnessActivity : AppCompatActivity() {
 
             DashboardAnalysisPeriod.MONTH -> {
                 java.time.YearMonth.from(date) ==
-                    java.time.YearMonth.now().minusMonths(reportSelectedMonthOffset.toLong())
+                        java.time.YearMonth.now().minusMonths(reportSelectedMonthOffset.toLong())
             }
         }
     }
@@ -1315,8 +1342,8 @@ class FitnessActivity : AppCompatActivity() {
 
     private fun isOutdoorWorkout(workoutType: String): Boolean {
         return workoutType == WorkoutNavigation.TYPE_WALKING ||
-            workoutType == WorkoutNavigation.TYPE_RUNNING ||
-            workoutType == WorkoutNavigation.TYPE_CYCLING
+                workoutType == WorkoutNavigation.TYPE_RUNNING ||
+                workoutType == WorkoutNavigation.TYPE_CYCLING
     }
 
     private fun parseSessionDate(rawDateTime: String): LocalDate? {
@@ -1446,6 +1473,14 @@ class FitnessActivity : AppCompatActivity() {
         }
     }
 
+    private fun formatHomeDistance(distanceMeters: Double): String {
+        return if (distanceMeters >= 1000.0) {
+            getString(R.string.fitness_home_distance_km, distanceMeters / 1000.0)
+        } else {
+            getString(R.string.fitness_home_distance_m, distanceMeters)
+        }
+    }
+
     private fun formatWeight(value: Double): String {
         return if (value % 1.0 == 0.0) {
             value.toInt().toString()
@@ -1485,6 +1520,7 @@ class FitnessActivity : AppCompatActivity() {
 
         private val HISTORY_FORMATTER: DateTimeFormatter =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        private const val HOME_MOVE_GOAL_KCAL = 120.0
         private val WEEKDAY_FORMATTER: DateTimeFormatter =
             DateTimeFormatter.ofPattern("EEE", Locale.getDefault())
         private val SHORT_DATE_FORMATTER: DateTimeFormatter =

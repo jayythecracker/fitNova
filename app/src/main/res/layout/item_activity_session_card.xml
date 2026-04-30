@@ -15,6 +15,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="@color/fitness_warm_soft"
         android:gravity="center_vertical"
         android:minHeight="136dp"
         android:orientation="horizontal"
@@ -46,7 +47,7 @@
             android:layout_height="96dp"
             android:layout_marginStart="14dp"
             android:layout_marginEnd="14dp"
-            android:background="@color/dashboard_line" />
+            android:background="@color/white" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -58,7 +59,7 @@
                 android:id="@+id/tvSessionActivityName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/fitness_text_primary"
+                android:textColor="@color/white"
                 android:textSize="18sp"
                 android:textStyle="bold"
                 tools:text="Running" />

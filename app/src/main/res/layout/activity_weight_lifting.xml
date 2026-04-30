@@ -269,6 +269,7 @@
                         android:layout_height="wrap_content"
                         android:inputType="textCapWords"
                         android:maxLines="1"
+                        android:textColor="@color/green_blue"
                         tools:text="Bench Press" />
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -287,9 +288,10 @@
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/tieWeightValue"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
+                            android:layout_height="61dp"
                             android:inputType="numberDecimal"
                             android:maxLines="1"
+                            android:textColor="@color/green_blue"
                             tools:text="40" />
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -309,6 +311,7 @@
                             android:layout_height="wrap_content"
                             android:inputType="number"
                             android:maxLines="1"
+                            android:textColor="@color/green_blue"
                             tools:text="10" />
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
@@ -363,7 +366,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:text="@string/weight_lifting_rest_ready"
-                    android:textColor="@color/auth_button_blue"
+                    android:textColor="@color/white"
                     android:textSize="32sp"
                     android:textStyle="bold"
                     tools:text="01:30" />

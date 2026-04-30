@@ -100,6 +100,14 @@ Account</string>
     <string name="dashboard_nav_report">Report</string>
     <string name="fitness_start_workout">Choose a Session</string>
     <string name="fitness_profile_button">Edit Profile</string>
+    <string name="fitness_home_activity_ring_title">Activity Ring</string>
+    <string name="fitness_home_move_label">Move</string>
+    <string name="fitness_home_move_progress">%1$s/%2$d KCAL</string>
+    <string name="fitness_home_calories_card_title">Calories Burned</string>
+    <string name="fitness_home_distance_card_title">Distance</string>
+    <string name="fitness_home_today_label">Today</string>
+    <string name="fitness_home_distance_km">%1$.2fKM</string>
+    <string name="fitness_home_distance_m">%1$.0fM</string>
     <string name="fitness_signals_title">Your Key Signals</string>
     <string name="fitness_activities_subtitle">Pick a workout and jump straight into tracking.</string>
     <string name="fitness_profile_meta_fallback">Session stored on this device</string>
